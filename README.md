@@ -16,7 +16,7 @@ Console / Query Profiler と並ぶタブとして動作し、Jupyter 風のセ�
   - 編集中の内容は localStorage に自動保存され、タブ切り替え・リロード後も復元される（Console と同じ挙動）
 - **出力**
   - ステータスコード・所要時間・実行時刻 + 生 JSON（折りたたみ・コピー可）
-  - `hits.hits` を含むレスポンスは `_source` をフラット化した **テーブル表示** に切替可
+  - **テーブル表示**に切替可: `hits.hits` を含む `_search` 結果（`_source` をフラット化）、またはトップレベルがオブジェクト配列のレスポンス（`_cat/*?format=json` 等）
   - 4xx/5xx もエラーとして出力に表示（例外にならない）
 - **保存**: Dashboards の Saved Object（type `opensearch-notebook`）として `.kibana` に保存
   - 「Open」で保存済み一覧 → 開く / 削除、「Save as copy」で複製

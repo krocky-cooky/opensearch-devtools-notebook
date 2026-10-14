@@ -18,20 +18,15 @@ interface Props {
 
 type ViewId = 'json' | 'table';
 
-interface HitRow {
-  _index: string;
-  _id: string;
-  _score: number | null;
-  [key: string]: unknown;
-}
+type Row = Record<string, unknown>;
 
 /** Flatten nested objects into dotted keys, keeping arrays as JSON strings. */
-function flatten(obj: unknown, prefix = '', out: Record<string, unknown> = {}) {
+function flatten(obj: unknown, prefix = '', out: Row = {}) {
   if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
     out[prefix || 'value'] = obj;
     return out;
   }
-  for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+  for (const [k, v] of Object.entries(obj as Row)) {
     const key = prefix ? `${prefix}.${k}` : k;
     if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
       flatten(v, key, out);
@@ -42,15 +37,27 @@ function flatten(obj: unknown, prefix = '', out: Record<string, unknown> = {}) {
   return out;
 }
 
-function extractHits(body: unknown): HitRow[] | null {
+const isObject = (v: unknown): v is Row => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * Turn a response into table rows when its shape allows it:
+ * - `_search` results: one row per `hits.hits[]` entry (_index/_id/_score + flattened _source)
+ * - top-level array of objects (e.g. `_cat/*?format=json`, `_tasks`): one row per element
+ */
+function extractRows(body: unknown): Row[] | null {
   const hits = (body as any)?.hits?.hits;
-  if (!Array.isArray(hits) || hits.length === 0) return null;
-  return hits.map((h: any) => ({
-    _index: h._index,
-    _id: h._id,
-    _score: h._score ?? null,
-    ...flatten(h._source ?? {}),
-  }));
+  if (Array.isArray(hits) && hits.length > 0) {
+    return hits.map((h: any) => ({
+      _index: h._index,
+      _id: h._id,
+      _score: h._score ?? null,
+      ...flatten(h._source ?? {}),
+    }));
+  }
+  if (Array.isArray(body) && body.length > 0 && body.every(isObject)) {
+    return body.map((item) => flatten(item));
+  }
+  return null;
 }
 
 const formatCell = (v: unknown) => {
@@ -67,7 +74,7 @@ const statusColor = (code: number) => {
 };
 
 export const CellOutputView: React.FC<Props> = ({ output }) => {
-  const rows = useMemo(() => extractHits(output.body), [output.body]);
+  const rows = useMemo(() => extractRows(output.body), [output.body]);
   const [view, setView] = useState<ViewId>('json');
   const effectiveView: ViewId = rows ? view : 'json';
 
@@ -133,7 +140,7 @@ export const CellOutputView: React.FC<Props> = ({ output }) => {
       {effectiveView === 'table' && rows ? (
         <div style={{ overflowX: 'auto' }}>
           <EuiBasicTable
-            tableCaption="Search hits"
+            tableCaption="Response rows"
             items={rows}
             columns={columns}
             tableLayout="auto"
