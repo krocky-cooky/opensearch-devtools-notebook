@@ -1,3 +1,8 @@
+/*
+ * Copyright 2026 Takuo Kuroki
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 // Flat ESLint config. The plugin lives in OSD's plugins/ (possibly via symlink),
 // so resolve the shared config relative to the OpenSearch Dashboards root.
 const path = require('node:path');

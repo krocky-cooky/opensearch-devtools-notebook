@@ -1,3 +1,8 @@
+/*
+ * Copyright 2026 Takuo Kuroki
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useMemo, useState } from 'react';
 import {
   EuiBadge,

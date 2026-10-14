@@ -1,3 +1,8 @@
+/*
+ * Copyright 2026 Takuo Kuroki
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { schema } from '@osd/config-schema';
 import { IRouter } from '../../../../src/core/server';
 import { EXECUTE_ROUTE, HTTP_METHODS, ExecuteResponseBody } from '../../common';

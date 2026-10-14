@@ -1,3 +1,8 @@
+/*
+ * Copyright 2026 Takuo Kuroki
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { SavedObjectsType } from '../../../src/core/server';
 import { NOTEBOOK_SAVED_OBJECT_TYPE } from '../common';
 

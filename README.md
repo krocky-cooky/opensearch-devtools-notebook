@@ -1,5 +1,7 @@
 # opensearch-notebook
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 OpenSearch Dashboards の **Dev Tools に「Notebook」タブを追加する**プラグイン。
 Console / Query Profiler と並ぶタブとして動作し、Jupyter 風のセル形式で DSL（REST リクエスト）を実行・記録できる。
 
@@ -156,3 +158,7 @@ yarn build --opensearch-dashboards-version 3.9.0
 - [Conventions for Plugins](https://github.com/opensearch-project/OpenSearch-Dashboards/blob/main/src/core/CONVENTIONS.md)
 - [Dev Tools plugin（`devTools.register`）](https://github.com/opensearch-project/OpenSearch-Dashboards/tree/main/src/plugins/dev_tools)
 - [Core Public API](https://github.com/opensearch-project/OpenSearch-Dashboards/blob/main/src/core/public/public.api.md) / [Core Server API](https://github.com/opensearch-project/OpenSearch-Dashboards/blob/main/src/core/server/server.api.md)
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).

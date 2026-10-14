@@ -6,5 +6,11 @@
     "build": "yarn plugin-helpers build",
     "plugin-helpers": "../../scripts/use_node ../../scripts/plugin_helpers",
     "osd": "../../scripts/use_node ../../scripts/osd"
+  },
+  "license": "Apache-2.0",
+  "description": "Notebook tab for OpenSearch Dashboards Dev Tools: run and document DSL requests in Jupyter-style cells",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/krocky-cooky/opensearch-notebook.git"
   }
 }

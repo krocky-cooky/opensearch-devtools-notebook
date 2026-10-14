@@ -1,3 +1,8 @@
+/*
+ * Copyright 2026 Takuo Kuroki
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 export const PLUGIN_ID = 'opensearchNotebook';
 export const PLUGIN_NAME = 'Notebook';
 
