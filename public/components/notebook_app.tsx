@@ -28,6 +28,7 @@ import {
   Notebook,
   NotebookCell,
 } from '../../common';
+import { parseStoredCells } from '../../common/notebook_file';
 import { downloadNotebookFile, NotebookStorage, readNotebookFile } from '../storage';
 import { Cell } from './cell';
 import { SavedNotebooksFlyout } from './saved_notebooks_flyout';
@@ -68,6 +69,55 @@ const emptyNotebook = (): Notebook => ({
   ],
 });
 
+const DRAFT_KEY = 'opensearchNotebook.draft';
+
+interface Draft {
+  notebook: Notebook;
+  savedId?: string;
+  dirty: boolean;
+}
+
+/**
+ * Dev Tools unmounts a tool when switching tabs, so keep the working copy in
+ * localStorage (like Console does) and restore it on the next mount.
+ */
+const loadDraft = (): Draft | undefined => {
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return undefined;
+    const d = JSON.parse(raw);
+    return {
+      notebook: { ...d.notebook, cells: parseStoredCells(JSON.stringify(d.notebook.cells)) },
+      savedId: d.savedId,
+      dirty: !!d.dirty,
+    };
+  } catch {
+    return undefined;
+  }
+};
+
+const saveDraft = (draft: Draft) => {
+  try {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // Quota exceeded (large outputs) — keep the inputs at least.
+    try {
+      const slim: Draft = {
+        ...draft,
+        notebook: {
+          ...draft.notebook,
+          cells: draft.notebook.cells.map((c) =>
+            c.type === 'dsl' ? { ...c, output: undefined } : c
+          ),
+        },
+      };
+      window.localStorage.setItem(DRAFT_KEY, JSON.stringify(slim));
+    } catch {
+      /* ignore */
+    }
+  }
+};
+
 /** Read the notebook id from the Dev Tools hash route, e.g. #/notebook?id=xxx */
 const readIdFromHash = (): string | undefined => {
   const hash = window.location.hash;
@@ -78,9 +128,12 @@ const readIdFromHash = (): string | undefined => {
 
 export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects }) => {
   const storage = useMemo(() => new NotebookStorage(savedObjects), [savedObjects]);
-  const [notebook, setNotebook] = useState<Notebook>(emptyNotebook);
-  const [savedId, setSavedId] = useState<string | undefined>();
-  const [dirty, setDirty] = useState(false);
+  const initialDraft = useMemo(loadDraft, []);
+  const [notebook, setNotebook] = useState<Notebook>(
+    () => initialDraft?.notebook ?? emptyNotebook()
+  );
+  const [savedId, setSavedId] = useState<string | undefined>(initialDraft?.savedId);
+  const [dirty, setDirty] = useState(initialDraft?.dirty ?? false);
   const [running, setRunning] = useState<Set<string>>(new Set());
   const [showSaved, setShowSaved] = useState(false);
   const [exportModal, setExportModal] = useState(false);
@@ -91,6 +144,11 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
   // Latest notebook for async callbacks (execution) without re-creating them on every edit.
   const notebookRef = useRef(notebook);
   notebookRef.current = notebook;
+
+  // Persist the working copy whenever it changes.
+  useEffect(() => {
+    saveDraft({ notebook, savedId, dirty });
+  }, [notebook, savedId, dirty]);
 
   const mutate = useCallback((fn: (nb: Notebook) => Notebook) => {
     setNotebook((nb) => fn(nb));

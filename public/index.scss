@@ -1,1 +1,13 @@
-/* stylelint-disable no-empty-source */
+.osnbBodyEditor {
+  border: 1px solid $euiColorLightShade;
+  border-radius: $euiBorderRadiusSmall;
+  overflow: hidden;
+
+  .monaco-editor .view-line {
+    border-bottom: 1px solid $euiColorLightestShade;
+  }
+}
+
+.osnbCell:focus-within {
+  border-color: $euiColorPrimary;
+}

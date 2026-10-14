@@ -24,7 +24,10 @@ import {
   NotebookCell,
 } from '../../common';
 import { parseConsoleRequests, toConsoleText } from '../../common/console_request';
+import { DSL_BODY_LANGUAGE_ID, registerDslBodyLanguage } from '../dsl_language';
 import { CellOutputView } from './cell_output';
+
+registerDslBodyLanguage();
 
 interface Props {
   cell: NotebookCell;
@@ -188,7 +191,7 @@ const DslCellBody: React.FC<{
     }
   };
 
-  const lineCount = Math.max(3, Math.min(25, cell.request.body.split('\n').length + 1));
+  const lineCount = Math.max(3, Math.min(30, cell.request.body.split('\n').length + 1));
 
   return (
     <div onPasteCapture={onPasteCapture}>
@@ -215,29 +218,43 @@ const DslCellBody: React.FC<{
         </EuiFlexItem>
       </EuiFlexGroup>
       <EuiSpacer size="xs" />
-      <CodeEditor
-        languageId="json"
-        height={`${lineCount * 19}px`}
-        value={cell.request.body}
-        onChange={(body) => update({ body })}
-        options={{
-          minimap: { enabled: false },
-          lineNumbers: 'on',
-          fontSize: 12,
-          scrollBeyondLastLine: false,
-          automaticLayout: true,
-          wordWrap: 'on',
-        }}
-        editorDidMount={(editor) => {
-          // Shift+Enter runs the cell, like Jupyter.
-          editor.addCommand(
-            // monaco.KeyMod.Shift | monaco.KeyCode.Enter
-            // eslint-disable-next-line no-bitwise
-            1024 | 3,
-            () => onRunRef.current()
-          );
-        }}
-      />
+      <div className="osnbBodyEditor">
+        <CodeEditor
+          languageId={DSL_BODY_LANGUAGE_ID}
+          height={`${lineCount * 19}px`}
+          value={cell.request.body}
+          onChange={(body) => update({ body })}
+          options={{
+            minimap: { enabled: false },
+            lineNumbers: 'on',
+            lineNumbersMinChars: 3,
+            glyphMargin: false,
+            folding: true,
+            fontSize: 12,
+            lineHeight: 19,
+            renderLineHighlight: 'all',
+            renderWhitespace: 'none',
+            guides: { indentation: true, bracketPairs: true },
+            bracketPairColorization: { enabled: true },
+            scrollBeyondLastLine: false,
+            scrollbar: { alwaysConsumeMouseWheel: false },
+            overviewRulerLanes: 0,
+            hideCursorInOverviewRuler: true,
+            automaticLayout: true,
+            wordWrap: 'on',
+            padding: { top: 4, bottom: 4 },
+          }}
+          editorDidMount={(editor) => {
+            // Shift+Enter runs the cell, like Jupyter.
+            editor.addCommand(
+              // monaco.KeyMod.Shift | monaco.KeyCode.Enter
+              // eslint-disable-next-line no-bitwise
+              1024 | 3,
+              () => onRunRef.current()
+            );
+          }}
+        />
+      </div>
     </div>
   );
 };

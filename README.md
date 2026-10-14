@@ -13,6 +13,7 @@ Console / Query Profiler と並ぶタブとして動作し、Jupyter 風のセ�
   - セルの追加 / 削除 / 上下移動、Shift+Enter で実行、「Run all」で上から順に実行
   - **Console 形式の貼り付け**: `GET posts/_search` + JSON ボディ をセル（パス欄 or ボディ）に貼ると、メソッド / パス / ボディに自動で振り分け。複数リクエストを一度に貼ると 2 つ目以降は新しいセルになる。`#` / `//` コメント行は無視
   - 「Copy as Console request」でセルの内容を Console 形式でクリップボードへ
+  - 編集中の内容は localStorage に自動保存され、タブ切り替え・リロード後も復元される（Console と同じ挙動）
 - **出力**
   - ステータスコード・所要時間・実行時刻 + 生 JSON（折りたたみ・コピー可）
   - `hits.hits` を含むレスポンスは `_source` をフラット化した **テーブル表示** に切替可
@@ -35,6 +36,7 @@ common/
 public/
   plugin.ts                  # devTools.register({ id: 'notebook', ... }) でタブ登録
   application.tsx            # React マウント（OpenSearchDashboardsContextProvider で CodeEditor に uiSettings を供給）
+  dsl_language.ts            # ボディエディタ用の JSON Monarch 文法（OSD の Monaco には json トークナイザが無いため）
   storage.ts                 # SavedObjects クライアントのラッパ、ファイル download / read
   components/
     notebook_app.tsx         # ツールバー（New / Open / Save / Export / Import / Run all / Clear outputs）とセル一覧
