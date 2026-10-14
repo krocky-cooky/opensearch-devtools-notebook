@@ -119,6 +119,8 @@
     "opensearchNotebook.cancel": "キャンセル",
     "opensearchNotebook.discard.title": "未保存の変更を破棄しますか？",
     "opensearchNotebook.discard.confirm": "破棄",
-    "opensearchNotebook.discard.body": "現在のノートブックには未保存の変更があり、失われます。"
+    "opensearchNotebook.discard.body": "現在のノートブックには未保存の変更があり、失われます。",
+    "opensearchNotebook.cell.copyConsole": "Console 形式でコピー",
+    "opensearchNotebook.cell.pathPlaceholder": "my-index/_search（Console のリクエストをここに貼り付けても可）"
   }
 }

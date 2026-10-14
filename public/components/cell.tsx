@@ -15,7 +15,15 @@ import {
 } from '@elastic/eui';
 import { i18n } from '@osd/i18n';
 import { CodeEditor } from '../../../../src/plugins/opensearch_dashboards_react/public';
-import { DslCell, HTTP_METHODS, HttpMethod, MarkdownCell, NotebookCell } from '../../common';
+import {
+  DslCell,
+  DslRequest,
+  HTTP_METHODS,
+  HttpMethod,
+  MarkdownCell,
+  NotebookCell,
+} from '../../common';
+import { parseConsoleRequests, toConsoleText } from '../../common/console_request';
 import { CellOutputView } from './cell_output';
 
 interface Props {
@@ -28,12 +36,19 @@ interface Props {
   onDelete: () => void;
   onMove: (direction: -1 | 1) => void;
   onInsertBelow: (type: NotebookCell['type']) => void;
+  /** Called when Console-formatted text with several requests is pasted into a DSL cell. */
+  onInsertRequestsBelow: (requests: DslRequest[]) => void;
 }
 
 const methodOptions = HTTP_METHODS.map((m) => ({ value: m, text: m }));
 
 const CellToolbar: React.FC<
-  Omit<Props, 'onChange' | 'cell'> & { label: string; runIcon: string; runTooltip: string }
+  Omit<Props, 'onChange' | 'cell'> & {
+    label: string;
+    runIcon: string;
+    runTooltip: string;
+    onCopyConsole?: () => void;
+  }
 > = ({
   index,
   total,
@@ -45,6 +60,7 @@ const CellToolbar: React.FC<
   label,
   runIcon,
   runTooltip,
+  onCopyConsole,
 }) => (
   <EuiFlexGroup gutterSize="xs" alignItems="center" responsive={false}>
     <EuiFlexItem grow={false}>
@@ -53,6 +69,21 @@ const CellToolbar: React.FC<
       </EuiText>
     </EuiFlexItem>
     <EuiFlexItem />
+    {onCopyConsole && (
+      <EuiFlexItem grow={false}>
+        <EuiToolTip
+          content={i18n.translate('opensearchNotebook.cell.copyConsole', {
+            defaultMessage: 'Copy as Console request',
+          })}
+        >
+          <EuiButtonIcon
+            iconType="copyClipboard"
+            aria-label="Copy as Console request"
+            onClick={onCopyConsole}
+          />
+        </EuiToolTip>
+      </EuiFlexItem>
+    )}
     <EuiFlexItem grow={false}>
       <EuiToolTip content={runTooltip}>
         {isRunning ? (
@@ -125,9 +156,24 @@ const DslCellBody: React.FC<{
   cell: DslCell;
   onChange: (cell: DslCell) => void;
   onRun: () => void;
-}> = ({ cell, onChange, onRun }) => {
+  onInsertRequestsBelow: (requests: DslRequest[]) => void;
+}> = ({ cell, onChange, onRun, onInsertRequestsBelow }) => {
   const update = (patch: Partial<DslCell['request']>) =>
     onChange({ ...cell, request: { ...cell.request, ...patch } });
+
+  // Pasting Console-formatted text ("GET index/_search" + body) anywhere in the cell fills the
+  // method dropdown, path and body. Additional requests become new cells below this one.
+  // Captured on the wrapper so it works for both the path field and the Monaco textarea.
+  const onPasteCapture = (e: React.ClipboardEvent) => {
+    const text = e.clipboardData.getData('text/plain');
+    const requests = parseConsoleRequests(text);
+    if (requests.length === 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const [first, ...rest] = requests;
+    onChange({ ...cell, request: first });
+    if (rest.length) onInsertRequestsBelow(rest);
+  };
 
   // Keep the latest onRun in a ref so the Monaco keybinding registered once stays current.
   const onRunRef = useRef(onRun);
@@ -145,7 +191,7 @@ const DslCellBody: React.FC<{
   const lineCount = Math.max(3, Math.min(25, cell.request.body.split('\n').length + 1));
 
   return (
-    <>
+    <div onPasteCapture={onPasteCapture}>
       <EuiFlexGroup gutterSize="s" responsive={false} onKeyDown={onKeyDown}>
         <EuiFlexItem grow={false} style={{ width: 120 }}>
           <EuiSelect
@@ -160,7 +206,9 @@ const DslCellBody: React.FC<{
           <EuiFieldText
             compressed
             aria-label="Request path"
-            placeholder="my-index/_search"
+            placeholder={i18n.translate('opensearchNotebook.cell.pathPlaceholder', {
+              defaultMessage: 'my-index/_search  (or paste a Console request here)',
+            })}
             value={cell.request.path}
             onChange={(e) => update({ path: e.target.value })}
           />
@@ -190,7 +238,7 @@ const DslCellBody: React.FC<{
           );
         }}
       />
-    </>
+    </div>
   );
 };
 
@@ -245,7 +293,7 @@ const MarkdownCellBody: React.FC<{
 };
 
 export const Cell: React.FC<Props> = (props) => {
-  const { cell, onChange, onRun } = props;
+  const { cell, onChange, onRun, onInsertRequestsBelow } = props;
   const [editing, setEditing] = useState(cell.type === 'markdown' && !cell.markdown);
 
   const handleRun = useCallback(() => {
@@ -263,6 +311,11 @@ export const Cell: React.FC<Props> = (props) => {
         onRun={cell.type === 'markdown' ? () => setEditing((v) => !v) : handleRun}
         label={cell.type === 'dsl' ? 'DSL' : 'Markdown'}
         runIcon={cell.type === 'dsl' ? 'play' : editing ? 'eye' : 'pencil'}
+        onCopyConsole={
+          cell.type === 'dsl'
+            ? () => navigator.clipboard?.writeText(toConsoleText(cell.request))
+            : undefined
+        }
         runTooltip={
           cell.type === 'dsl'
             ? i18n.translate('opensearchNotebook.cell.runTooltip', {
@@ -280,7 +333,12 @@ export const Cell: React.FC<Props> = (props) => {
       <EuiSpacer size="xs" />
       {cell.type === 'dsl' ? (
         <>
-          <DslCellBody cell={cell} onChange={onChange} onRun={handleRun} />
+          <DslCellBody
+            cell={cell}
+            onChange={onChange}
+            onRun={handleRun}
+            onInsertRequestsBelow={onInsertRequestsBelow}
+          />
           {cell.output && (
             <>
               <EuiSpacer size="s" />

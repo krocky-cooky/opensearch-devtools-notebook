@@ -11,6 +11,8 @@ Console / Query Profiler と並ぶタブとして動作し、Jupyter 風のセ�
   - `DSL` セル: HTTP メソッド（プルダウン: GET / POST / PUT / DELETE / HEAD / PATCH）+ パス + JSON ボディ（Monaco エディタ）
   - `Markdown` セル: EUI の Markdown 描画。ダブルクリックで編集、Shift+Enter で表示に戻る
   - セルの追加 / 削除 / 上下移動、Shift+Enter で実行、「Run all」で上から順に実行
+  - **Console 形式の貼り付け**: `GET posts/_search` + JSON ボディ をセル（パス欄 or ボディ）に貼ると、メソッド / パス / ボディに自動で振り分け。複数リクエストを一度に貼ると 2 つ目以降は新しいセルになる。`#` / `//` コメント行は無視
+  - 「Copy as Console request」でセルの内容を Console 形式でクリップボードへ
 - **出力**
   - ステータスコード・所要時間・実行時刻 + 生 JSON（折りたたみ・コピー可）
   - `hits.hits` を含むレスポンスは `_source` をフラット化した **テーブル表示** に切替可
@@ -29,6 +31,7 @@ opensearch_dashboards.json   # id: opensearchNotebook, requiredPlugins: devTools
 common/
   index.ts                   # 型（Notebook / NotebookCell / CellOutput …）と定数（ルート、SavedObject type、ファイル拡張子）
   notebook_file.ts           # .osnb.json のパース / 生成 / バリデーション
+  console_request.ts         # Console 形式テキスト ⇄ {method, path, body} の変換
 public/
   plugin.ts                  # devTools.register({ id: 'notebook', ... }) でタブ登録
   application.tsx            # React マウント（OpenSearchDashboardsContextProvider で CodeEditor に uiSettings を供給）

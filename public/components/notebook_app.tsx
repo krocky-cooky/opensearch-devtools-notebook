@@ -21,6 +21,7 @@ import { CoreStart, SavedObjectsClientContract } from '../../../../src/core/publ
 import {
   CellOutput,
   DslCell,
+  DslRequest,
   EXECUTE_ROUTE,
   ExecuteRequestBody,
   ExecuteResponseBody,
@@ -158,6 +159,17 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
     mutate((nb) => {
       const cells = [...nb.cells];
       cells.splice(index, 0, newCell(type));
+      return { ...nb, cells };
+    });
+
+  const insertRequests = (index: number, requests: DslRequest[]) =>
+    mutate((nb) => {
+      const cells = [...nb.cells];
+      cells.splice(
+        index,
+        0,
+        ...requests.map((request): NotebookCell => ({ id: newId(), type: 'dsl', request }))
+      );
       return { ...nb, cells };
     });
 
@@ -414,6 +426,7 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
               onDelete={() => deleteCell(index)}
               onMove={(dir) => moveCell(index, dir)}
               onInsertBelow={(type) => insertCell(index + 1, type)}
+              onInsertRequestsBelow={(requests) => insertRequests(index + 1, requests)}
             />
             <EuiSpacer size="s" />
           </React.Fragment>
