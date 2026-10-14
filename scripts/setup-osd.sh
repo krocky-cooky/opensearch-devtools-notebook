@@ -28,10 +28,22 @@ if [ "$REQUIRED_NODE" != "$CURRENT_NODE" ]; then
 fi
 
 mkdir -p "$OSD_DIR/plugins"
-LINK="$OSD_DIR/plugins/$PLUGIN_NAME"
-if [ ! -e "$LINK" ]; then
-  ln -s "$PLUGIN_DIR" "$LINK"
-  echo "Linked   : $LINK -> $PLUGIN_DIR"
+TARGET="$OSD_DIR/plugins/$PLUGIN_NAME"
+# The plugin must physically live under plugins/ so that Node resolves
+# ../../node_modules (a symlink in plugins/ pointing elsewhere breaks
+# `require('@osd/config-schema')` on the server side). Move the repo there
+# and leave a symlink at the original location for convenience.
+if [ ! -e "$TARGET" ]; then
+  if [ -L "$PLUGIN_DIR" ]; then
+    echo "ERROR: $PLUGIN_DIR is a symlink but $TARGET does not exist." >&2
+    exit 1
+  fi
+  mv "$PLUGIN_DIR" "$TARGET"
+  ln -s "$TARGET" "$PLUGIN_DIR"
+  echo "Moved    : $PLUGIN_DIR -> $TARGET (symlink left behind)"
+elif [ -L "$TARGET" ]; then
+  echo "ERROR: $TARGET is a symlink; remove it and re-run (plugin must be a real directory)." >&2
+  exit 1
 fi
 
 (cd "$OSD_DIR" && yarn osd bootstrap)
@@ -41,5 +53,6 @@ cat <<EOF
 Done. Next steps:
   1. Start OpenSearch:          docker compose -f "$PLUGIN_DIR/docker-compose.yml" up -d
   2. Start Dashboards (dev):    (cd "$OSD_DIR" && yarn start --no-base-path)
-  3. Open http://localhost:5601 and find "$PLUGIN_NAME" in the left nav.
+     (an already-running OpenSearch on :9200 works too; skip step 1)
+  3. Open http://localhost:5601/app/dev_tools#/notebook
 EOF

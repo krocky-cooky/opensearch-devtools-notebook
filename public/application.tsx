@@ -1,21 +1,24 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { AppMountParameters, CoreStart } from '../../../src/core/public';
-import { AppPluginStartDependencies } from './types';
-import { OpensearchNotebookApp } from './components/app';
+import { CoreStart } from '../../../src/core/public';
+import { OpenSearchDashboardsContextProvider } from '../../../src/plugins/opensearch_dashboards_react/public';
+import { NotebookApp } from './components/notebook_app';
 
-export const renderApp = (
-  { notifications, http }: CoreStart,
-  { navigation }: AppPluginStartDependencies,
-  { appBasePath, element }: AppMountParameters
-) => {
+export const renderApp = (core: CoreStart, element: HTMLElement) => {
+  const {
+    i18n: { Context: I18nContext },
+  } = core;
+
   ReactDOM.render(
-    <OpensearchNotebookApp
-      basename={appBasePath}
-      notifications={notifications}
-      http={http}
-      navigation={navigation}
-    />,
+    <I18nContext>
+      <OpenSearchDashboardsContextProvider services={core}>
+        <NotebookApp
+          http={core.http}
+          notifications={core.notifications}
+          savedObjects={core.savedObjects.client}
+        />
+      </OpenSearchDashboardsContextProvider>
+    </I18nContext>,
     element
   );
 

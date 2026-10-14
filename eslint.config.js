@@ -1,9 +1,14 @@
-const osdConfig = require('@elastic/eslint-config-kibana');
-const { eui } = require('@elastic/eslint-config-kibana/extras');
+// Flat ESLint config. The plugin lives in OSD's plugins/ (possibly via symlink),
+// so resolve the shared config relative to the OpenSearch Dashboards root.
+const path = require('node:path');
+const { createRequire } = require('node:module');
 
-// Spread the shared OpenSearch Dashboards flat config, then append overrides.
-// No need to require or register ESLint plugins — the shared config does that.
-// See packages/opensearch-eslint-config-opensearch-dashboards/README.md.
+const osdRoot = process.env.OSD_ROOT || path.resolve(__dirname, '..', '..');
+const osdRequire = createRequire(path.join(osdRoot, 'package.json'));
+
+const osdConfig = osdRequire('@elastic/eslint-config-kibana');
+const { eui } = osdRequire('@elastic/eslint-config-kibana/extras');
+
 module.exports = [
   ...osdConfig,
   ...eui,

@@ -8,9 +8,12 @@ import {
 
 import { OpensearchNotebookPluginSetup, OpensearchNotebookPluginStart } from './types';
 import { defineRoutes } from './routes';
+import { notebookSavedObjectType } from './saved_objects';
 
-export class OpensearchNotebookPlugin
-  implements Plugin<OpensearchNotebookPluginSetup, OpensearchNotebookPluginStart> {
+export class OpensearchNotebookPlugin implements Plugin<
+  OpensearchNotebookPluginSetup,
+  OpensearchNotebookPluginStart
+> {
   private readonly logger: Logger;
 
   constructor(initializerContext: PluginInitializerContext) {
@@ -18,17 +21,14 @@ export class OpensearchNotebookPlugin
   }
 
   public setup(core: CoreSetup) {
-    this.logger.debug('opensearch_notebook: Setup');
-    const router = core.http.createRouter();
-
-    // Register server side APIs
-    defineRoutes(router);
-
+    this.logger.debug('opensearchNotebook: Setup');
+    core.savedObjects.registerType(notebookSavedObjectType);
+    defineRoutes(core.http.createRouter());
     return {};
   }
 
   public start(core: CoreStart) {
-    this.logger.debug('opensearch_notebook: Started');
+    this.logger.debug('opensearchNotebook: Started');
     return {};
   }
 

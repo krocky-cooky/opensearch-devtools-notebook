@@ -1,40 +1,31 @@
 import { i18n } from '@osd/i18n';
-import { AppMountParameters, CoreSetup, CoreStart, Plugin } from '../../../src/core/public';
+import { CoreSetup, CoreStart, Plugin } from '../../../src/core/public';
 import {
   OpensearchNotebookPluginSetup,
   OpensearchNotebookPluginStart,
-  AppPluginStartDependencies,
+  SetupDependencies,
 } from './types';
-import { PLUGIN_NAME } from '../common';
 
-export class OpensearchNotebookPlugin
-  implements Plugin<OpensearchNotebookPluginSetup, OpensearchNotebookPluginStart> {
-  public setup(core: CoreSetup): OpensearchNotebookPluginSetup {
-    // Register an application into the side navigation menu
-    core.application.register({
-      id: 'opensearchNotebook',
-      title: PLUGIN_NAME,
-      async mount(params: AppMountParameters) {
-        // Load application bundle
+export class OpensearchNotebookPlugin implements Plugin<
+  OpensearchNotebookPluginSetup,
+  OpensearchNotebookPluginStart,
+  SetupDependencies
+> {
+  public setup(core: CoreSetup, { devTools }: SetupDependencies): OpensearchNotebookPluginSetup {
+    devTools.register({
+      id: 'notebook',
+      title: i18n.translate('opensearchNotebook.devToolsTabTitle', {
+        defaultMessage: 'Notebook',
+      }),
+      order: 10,
+      enableRouting: false,
+      mount: async ({ element }) => {
+        const [coreStart] = await core.getStartServices();
         const { renderApp } = await import('./application');
-        // Get start services as specified in opensearch_dashboards.json
-        const [coreStart, depsStart] = await core.getStartServices();
-        // Render the application
-        return renderApp(coreStart, depsStart as AppPluginStartDependencies, params);
+        return renderApp(coreStart, element);
       },
     });
-
-    // Return methods that should be available to other plugins
-    return {
-      getGreeting() {
-        return i18n.translate('opensearchNotebook.greetingText', {
-          defaultMessage: 'Hello from {name}!',
-          values: {
-            name: PLUGIN_NAME,
-          },
-        });
-      },
-    };
+    return {};
   }
 
   public start(core: CoreStart): OpensearchNotebookPluginStart {
