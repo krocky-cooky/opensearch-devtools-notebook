@@ -1,0 +1,21 @@
+# 開発用 OpenSearch（単一ノード・セキュリティプラグイン無効）
+# ローカル開発専用。本番やインターネット到達可能な環境では使わないこと。
+services:
+  opensearch:
+    image: opensearchproject/opensearch:3.9.0
+    container_name: opensearch-notebook-dev
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "127.0.0.1:9200:9200"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+
+volumes:
+  opensearch-data:
