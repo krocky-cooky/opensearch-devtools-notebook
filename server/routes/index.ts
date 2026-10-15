@@ -20,13 +20,18 @@ function splitPath(raw: string): { path: string; querystring?: Record<string, st
   return { path, querystring };
 }
 
-/** Parse the body text; fall back to the raw string for NDJSON / non JSON payloads. */
+/**
+ * Parse the body text. Non-JSON payloads (NDJSON for _bulk / _msearch) are sent as-is,
+ * with the trailing newline that those APIs require — editors and the paste parser
+ * tend to strip it, which OpenSearch rejects with
+ * "The bulk request must be terminated by a newline".
+ */
 function parseBody(text: string | undefined): Record<string, any> | string | undefined {
   if (!text || !text.trim()) return undefined;
   try {
     return JSON.parse(text) as Record<string, any>;
   } catch {
-    return text;
+    return text.endsWith('\n') ? text : `${text}\n`;
   }
 }
 
