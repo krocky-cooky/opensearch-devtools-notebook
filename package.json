@@ -11,6 +11,6 @@
   "description": "Notebook tab for OpenSearch Dashboards Dev Tools: run and document DSL requests in Jupyter-style cells",
   "repository": {
     "type": "git",
-    "url": "https://github.com/krocky-cooky/opensearch-notebook.git"
+    "url": "https://github.com/krocky-cooky/opensearch-dsl-notebook.git"
   }
 }
