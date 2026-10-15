@@ -34,7 +34,7 @@ Adds a **Notebook** tab to OpenSearch Dashboards Dev Tools. Run Query DSL in Jup
 
 ## Install
 
-Requires a self-managed OpenSearch Dashboards (Amazon OpenSearch Service's bundled Dashboards does not accept custom plugins). The plugin version must match Dashboards down to the patch level.
+The plugin version must match your OpenSearch Dashboards version down to the patch level.
 
 ```bash
 # build (inside the Dashboards checkout, plugins/opensearch-notebook)
