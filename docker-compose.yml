@@ -1,5 +1,5 @@
-# 開発用 OpenSearch（単一ノード・セキュリティプラグイン無効）
-# ローカル開発専用。本番やインターネット到達可能な環境では使わないこと。
+# OpenSearch for local development (single node, security plugin disabled).
+# Local development only — never use this in production or on a host reachable from the internet.
 services:
   opensearch:
     image: opensearchproject/opensearch:3.9.0

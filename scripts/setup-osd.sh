@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# OpenSearch Dashboards 本体を隣のディレクトリに clone し、
-# このプラグインを plugins/ 配下にシンボリックリンクして開発環境を整える。
+# Clone OpenSearch Dashboards into a sibling directory, move this plugin under
+# its plugins/ directory and bootstrap the development environment.
 #
-# 使い方:
+# Usage:
 #   ./scripts/setup-osd.sh [OSD_VERSION] [OSD_DIR]
-#   例: ./scripts/setup-osd.sh 3.9.0 ../OpenSearch-Dashboards
+#   e.g. ./scripts/setup-osd.sh 3.9.0 ../OpenSearch-Dashboards
 set -euo pipefail
 
 OSD_VERSION="${1:-3.9.0}"

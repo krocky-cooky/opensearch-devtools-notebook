@@ -1,72 +1,72 @@
-# opensearch-notebook
+# opensearch-dsl-notebook
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-OpenSearch Dashboards の **Dev Tools に「Notebook」タブを追加する**プラグイン。
-Console / Query Profiler と並ぶタブとして動作し、Jupyter 風のセル形式で DSL（REST リクエスト）を実行・記録できる。
+An OpenSearch Dashboards plugin that adds a **Notebook** tab to Dev Tools, next to Console and Query Profiler.
+Write and run Query DSL (any REST request) in Jupyter-style cells, mix in Markdown, save the result as a notebook, and share it as a file.
 
 ![tabs](https://img.shields.io/badge/Dev%20Tools-Console%20%7C%20Query%20Profiler%20%7C%20Notebook-blue)
 
-## 機能
+## Features
 
-- **セル**
-  - `DSL` セル: HTTP メソッド（プルダウン: GET / POST / PUT / DELETE / HEAD / PATCH）+ パス + JSON ボディ（Monaco エディタ）
-  - `Markdown` セル: EUI の Markdown 描画。ダブルクリックで編集、Shift+Enter で表示に戻る
-  - セルの追加 / 削除 / 上下移動、Shift+Enter で実行、「Run all」で上から順に実行
-  - **Console 形式の貼り付け**: `GET posts/_search` + JSON ボディ をセル（パス欄 or ボディ）に貼ると、メソッド / パス / ボディに自動で振り分け。複数リクエストを一度に貼ると 2 つ目以降は新しいセルになる。`#` / `//` コメント行は無視
-  - 「Copy as Console request」でセルの内容を Console 形式でクリップボードへ
-  - 編集中の内容は localStorage に自動保存され、タブ切り替え・リロード後も復元される（Console と同じ挙動）
-- **出力**
-  - ステータスコード・所要時間・実行時刻 + 生 JSON（折りたたみ・コピー可）
-  - **テーブル表示**に切替可: `hits.hits` を含む `_search` 結果（`_source` をフラット化）、またはトップレベルがオブジェクト配列のレスポンス（`_cat/*?format=json` 等）
-  - 4xx/5xx もエラーとして出力に表示（例外にならない）
-- **保存**: Dashboards の Saved Object（type `opensearch-notebook`）として `.kibana` に保存
-  - 「Open」で保存済み一覧 → 開く / 削除、「Save as copy」で複製
-  - テナント分離・権限・Stack Management › Saved Objects からの export/import が標準で付く
-  - ディープリンク: `/app/dev_tools#/notebook?id=<savedObjectId>`
-- **ファイル export / import**: 独自 JSON 形式（`<title>.osnb.json`）をブラウザからダウンロード／ファイル選択で読み込み
-  - export 時に「出力を含める」を選択可能
+- **Cells**
+  - `DSL` cell: HTTP method dropdown (GET / POST / PUT / DELETE / HEAD / PATCH), request path, and a JSON body editor (Monaco, with syntax highlighting)
+  - `Markdown` cell: rendered with EUI Markdown. Double-click to edit, Shift+Enter to render
+  - Add / delete / reorder cells, run a cell with Shift+Enter, or run every cell top to bottom with **Run all**
+  - **Paste from Console**: paste `GET posts/_search` followed by a JSON body into a cell (path field or body) and it is split into method / path / body. Pasting several requests at once creates one cell per request. `#` and `//` comment lines are ignored
+  - **Copy as Console request** copies a cell back into Console format
+  - The notebook you are editing is kept in `localStorage`, so it survives switching Dev Tools tabs and page reloads (same behavior as Console)
+- **Output**
+  - Status code, duration and timestamp, plus the raw JSON response (collapsible, copyable)
+  - **Table view** for `_search` results (`hits.hits` with `_source` flattened) and for responses whose top level is an array of objects (`_cat/*?format=json`, `_tasks`, …)
+  - 4xx / 5xx responses are shown as cell output rather than thrown
+- **Save**: notebooks are stored as Dashboards saved objects (type `opensearch-notebook`) in the `.kibana` index
+  - **Open** lists saved notebooks (open / delete); **Save as copy** duplicates
+  - Tenant isolation, permissions and export/import from *Stack Management › Saved Objects* come for free
+  - Deep link: `/app/dev_tools#/notebook?id=<savedObjectId>`
+- **File export / import**: download a notebook as `<title>.osnb.json` and import it later from the file picker
+  - Choose whether to include cell outputs when exporting
 
-## 構成
+## Layout
 
 ```
 opensearch_dashboards.json   # id: opensearchNotebook, requiredPlugins: devTools, opensearchDashboardsReact
 common/
-  index.ts                   # 型（Notebook / NotebookCell / CellOutput …）と定数（ルート、SavedObject type、ファイル拡張子）
-  notebook_file.ts           # .osnb.json のパース / 生成 / バリデーション
-  console_request.ts         # Console 形式テキスト ⇄ {method, path, body} の変換
+  index.ts                   # Types (Notebook / NotebookCell / CellOutput …) and constants (routes, saved object type, file extension)
+  notebook_file.ts           # Parse / build / validate the .osnb.json format
+  console_request.ts         # Console-format text <-> {method, path, body}
 public/
-  plugin.ts                  # devTools.register({ id: 'notebook', ... }) でタブ登録
-  application.tsx            # React マウント（OpenSearchDashboardsContextProvider で CodeEditor に uiSettings を供給）
-  dsl_language.ts            # ボディエディタ用の JSON Monarch 文法（OSD の Monaco には json トークナイザが無いため）
-  storage.ts                 # SavedObjects クライアントのラッパ、ファイル download / read
+  plugin.ts                  # devTools.register({ id: 'notebook', ... })
+  application.tsx            # React mount (OpenSearchDashboardsContextProvider supplies uiSettings to CodeEditor)
+  dsl_language.ts            # Monarch JSON grammar for the body editor (OSD's Monaco build ships no json tokenizer)
+  storage.ts                 # Saved-objects client wrapper, file download / read
   components/
-    notebook_app.tsx         # ツールバー（New / Open / Save / Export / Import / Run all / Clear outputs）とセル一覧
-    cell.tsx                 # DSL セル（メソッド <select>、パス、Monaco）/ Markdown セル
-    cell_output.tsx          # ステータスバッジ、JSON、hits テーブル
+    notebook_app.tsx         # Toolbar (New / Open / Save / Export / Import / Run all / Clear outputs) and the cell list
+    cell.tsx                 # DSL cell (method <select>, path, Monaco) / Markdown cell
+    cell_output.tsx          # Status badge, JSON view, table view
     saved_notebooks_flyout.tsx
 server/
-  plugin.ts                  # SavedObject type 登録 + ルート定義
-  saved_objects.ts           # type 'opensearch-notebook'（title/description/cells(JSON文字列)/schemaVersion）
+  plugin.ts                  # Saved object type registration + routes
+  saved_objects.ts           # Type 'opensearch-notebook' (title / description / cells as a JSON string / schemaVersion)
   routes/index.ts            # POST /api/opensearch_notebook/execute
 translations/ja-JP.json
-scripts/setup-osd.sh         # 開発環境セットアップ
-docker-compose.yml           # 開発用 OpenSearch（セキュリティ無効）
+scripts/setup-osd.sh         # Development environment setup
+docker-compose.yml           # Local OpenSearch for development (security disabled)
 ```
 
-### クエリ実行経路
+### Request execution path
 
 ```
-ブラウザ ──POST /api/opensearch_notebook/execute {method,path,body}──▶ Dashboards サーバー
-          ◀── 200 {statusCode, body, durationMs} ──────────────────────  │
-                                      opensearch.client.asCurrentUser.transport.request(...) ──▶ OpenSearch
+Browser ──POST /api/opensearch_notebook/execute {method,path,body}──▶ Dashboards server
+        ◀── 200 {statusCode, body, durationMs} ───────────────────────  │
+                                 opensearch.client.asCurrentUser.transport.request(...) ──▶ OpenSearch
 ```
 
-- 任意のメソッド・パスを転送する（Console と同等）。`?` 以降は querystring として分離
-- ログインユーザーの権限で実行される（FGAC 環境ではユーザーの権限がそのまま適用）
-- 400/401/403/404/405/409/429 は例外にせずステータスとボディをそのまま返す。5xx/接続失敗も 200 で `{statusCode, body}` にして返し、セル出力として表示する
+- Any method and path is forwarded (equivalent to Console). Everything after `?` is sent as the query string
+- Requests run with the permissions of the logged-in user (fine-grained access control applies as usual)
+- 400 / 401 / 403 / 404 / 405 / 409 / 429 are returned with their status and body instead of being raised. 5xx and connection failures are also wrapped in a 200 `{statusCode, body}` so the cell can display them
 
-### ファイル形式（`.osnb.json`）
+### File format (`.osnb.json`)
 
 ```json
 {
@@ -86,77 +86,77 @@ docker-compose.yml           # 開発用 OpenSearch（セキュリティ無効�
 }
 ```
 
-`output` は任意（export 時に外せる）。import 時は `schemaVersion`・`type`・`request.method` などを検証し、不正なら理由付きで拒否する。
+`output` is optional (it can be stripped on export). Import validates `schemaVersion`, `type`, `request.method` and so on, and rejects invalid files with a reason.
 
-## 開発環境のセットアップ
+## Development setup
 
-プラグインは Dashboards 本体の `plugins/` 配下に **実ディレクトリとして** 置く必要がある（`plugins/` 内がシンボリックリンクだとサーバー側の `require('@osd/config-schema')` が解決できない）。
-`setup-osd.sh` はこのリポジトリを `../OpenSearch-Dashboards/plugins/opensearch-notebook` に移動し、元の場所にシンボリックリンクを残す。
+The plugin must live under the Dashboards checkout as a **real directory** in `plugins/` — a symlink there breaks server-side resolution of `@osd/config-schema`.
+`setup-osd.sh` moves this repository to `../OpenSearch-Dashboards/plugins/opensearch-notebook` and leaves a symlink at the original location.
 
 ```bash
-# Node は本体の .nvmrc に合わせる（3.9.0 は Node 22）
+# Match the Node version in the Dashboards .nvmrc (3.9.0 uses Node 22)
 nvm install 22 && nvm use 22
 
-# 本体を ../OpenSearch-Dashboards に clone し、plugins/ に配置、bootstrap まで実行（数分〜十数分）
+# Clone Dashboards into ../OpenSearch-Dashboards, move the plugin under plugins/, and bootstrap (several minutes)
 ./scripts/setup-osd.sh 3.9.0
 
-# 接続先 OpenSearch を起動（localhost:9200、セキュリティ無効）。既に動いていれば不要
+# Start OpenSearch on localhost:9200 with security disabled (skip if one is already running)
 docker compose up -d
 
-# Dashboards を開発モードで起動（初回の optimizer は 5〜10 分かかる）
+# Start Dashboards in dev mode (the first optimizer run takes 5–10 minutes)
 cd ../OpenSearch-Dashboards
 yarn start --no-base-path
 ```
 
-http://localhost:5601/app/dev_tools#/notebook を開く。
+Open http://localhost:5601/app/dev_tools#/notebook.
 
-### 型チェック / lint
+### Type checking / linting
 
-本体のツールチェーンを使う（プラグイン単体では node_modules を持たない）。
+Use the Dashboards toolchain; the plugin has no `node_modules` of its own.
 
 ```bash
 cd ../OpenSearch-Dashboards
 OSD_ROOT=$PWD node scripts/eslint plugins/opensearch-notebook/{public,server,common}
 ```
 
-`eslint.config.js` は `OSD_ROOT`（未指定なら `../..`）から共有設定を解決する。
+`eslint.config.js` resolves the shared config from `OSD_ROOT` (defaults to `../..`).
 
-## ビルド（配布用 zip）
+## Build (distributable zip)
 
 ```bash
-# plugins/opensearch-notebook で実行
+# run inside plugins/opensearch-notebook
 yarn build --opensearch-dashboards-version 3.9.0
 # → build/opensearchNotebook-3.9.0.zip
 ```
 
-配布先の Dashboards でインストール:
+Install on the target Dashboards:
 
 ```bash
 ./bin/opensearch-dashboards-plugin install file:///path/to/opensearchNotebook-3.9.0.zip
 ```
 
-## 注意点・制限
+## Notes and limitations
 
-- `opensearch_dashboards.json` の `opensearchDashboardsVersion` は `"opensearchDashboards"`（本体と同じバージョンを意味する特殊値）。配布 zip 作成時は `--opensearch-dashboards-version` で実バージョンが埋め込まれる。配布先とパッチレベルまで一致しないとロードされない。
-- **Amazon OpenSearch Service 付属の Dashboards にはカスタムプラグインを入れられない**。マネージドドメインで使う場合は、自前の Dashboards（EC2 / ECS 等）にこのプラグインを入れ、ドメインエンドポイントに接続する。
-- マルチデータソース（MDS）は未対応。Dashboards のデフォルト接続先に対してのみ実行する。
-- セル間の変数受け渡し、Console の autocomplete 連携、`aggregations` のテーブル化はスコープ外。
-- `.osnb.json` は本家 Observability Notebooks（`%sql` / `%ppl` / `%md`）とは互換性がない。
+- `opensearchDashboardsVersion` in `opensearch_dashboards.json` is `"opensearchDashboards"`, a special value meaning "same version as the host". The real version is embedded when building the zip via `--opensearch-dashboards-version`; the target Dashboards must match down to the patch level or the plugin will not load.
+- **Amazon OpenSearch Service's bundled Dashboards does not accept custom plugins.** To use this with a managed domain, run your own Dashboards (EC2 / ECS / …) with the plugin installed and point it at the domain endpoint.
+- Multiple data sources (MDS) are not supported; requests always go to the Dashboards default connection.
+- Out of scope: passing values between cells, Console autocomplete, table view for `aggregations`.
+- `.osnb.json` is not compatible with the upstream Observability Notebooks format (`%sql` / `%ppl` / `%md`).
 
-## 本家 Notebooks との違い
+## Comparison with Observability Notebooks
 
-| | Observability Notebooks（dashboards-observability） | このプラグイン |
+| | Observability Notebooks (dashboards-observability) | This plugin |
 |---|---|---|
-| 場所 | 左ナビ › Observability › Notebooks | Dev Tools › Notebook タブ |
-| セル種別 | `%sql` / `%ppl` / `%md` / Visualization | DSL（任意の REST） / Markdown |
-| 実行経路 | query-workbench の `/api/sql/*` → SQL プラグイン | 自前ルート → `transport.request` |
-| 保存先 | Saved Object `observability-notebook` | Saved Object `opensearch-notebook` |
-| ファイル入出力 | なし（Saved Objects 管理画面のみ） | `.osnb.json` export / import |
+| Location | Left nav › Observability › Notebooks | Dev Tools › Notebook tab |
+| Cell types | `%sql` / `%ppl` / `%md` / Visualization | DSL (any REST request) / Markdown |
+| Execution path | query-workbench `/api/sql/*` → SQL plugin | Own route → `transport.request` |
+| Storage | Saved object `observability-notebook` | Saved object `opensearch-notebook` |
+| File import/export | None (Saved Objects management only) | `.osnb.json` export / import |
 
-## 参考
+## References
 
 - [Conventions for Plugins](https://github.com/opensearch-project/OpenSearch-Dashboards/blob/main/src/core/CONVENTIONS.md)
-- [Dev Tools plugin（`devTools.register`）](https://github.com/opensearch-project/OpenSearch-Dashboards/tree/main/src/plugins/dev_tools)
+- [Dev Tools plugin (`devTools.register`)](https://github.com/opensearch-project/OpenSearch-Dashboards/tree/main/src/plugins/dev_tools)
 - [Core Public API](https://github.com/opensearch-project/OpenSearch-Dashboards/blob/main/src/core/public/public.api.md) / [Core Server API](https://github.com/opensearch-project/OpenSearch-Dashboards/blob/main/src/core/server/server.api.md)
 
 ## License
