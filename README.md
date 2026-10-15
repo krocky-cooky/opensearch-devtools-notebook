@@ -18,7 +18,7 @@ Write and run Query DSL (any REST request) in Jupyter-style cells, mix in Markdo
   - The notebook you are editing is kept in `localStorage`, so it survives switching Dev Tools tabs and page reloads (same behavior as Console)
 - **Output**
   - Status code, duration and timestamp, plus the raw JSON response (collapsible, copyable)
-  - **Table view** for `_search` results (`hits.hits` with `_source` flattened) and for responses whose top level is an array of objects (`_cat/*?format=json`, `_tasks`, …)
+  - **Table view** (EUI data grid: resizable / hideable columns, sorting, pagination, full screen) for `_search` results (`hits.hits` → `_index`, `_id`, `_score` plus the top-level `_source` fields) and for responses whose top level is an array of objects (`_cat/*?format=json`, `_tasks`, …). Nested objects and arrays stay in one column as compact JSON; expand the cell to see them pretty-printed
   - 4xx / 5xx responses are shown as cell output rather than thrown
 - **Save**: notebooks are stored as Dashboards saved objects (type `opensearch-notebook`) in the `.kibana` index
   - **Open** lists saved notebooks (open / delete); **Save as copy** duplicates
@@ -43,7 +43,8 @@ public/
   components/
     notebook_app.tsx         # Toolbar (New / Open / Save / Export / Import / Run all / Clear outputs) and the cell list
     cell.tsx                 # DSL cell (method <select>, path, Monaco) / Markdown cell
-    cell_output.tsx          # Status badge, JSON view, table view
+    cell_output.tsx          # Status badge, JSON view, table view toggle
+    response_data_grid.tsx   # EuiDataGrid for table view (JSON cell expansion)
     saved_notebooks_flyout.tsx
 server/
   plugin.ts                  # Saved object type registration + routes

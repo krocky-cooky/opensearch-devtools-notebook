@@ -6,7 +6,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   EuiBadge,
-  EuiBasicTable,
   EuiButtonGroup,
   EuiCodeBlock,
   EuiFlexGroup,
@@ -16,6 +15,7 @@ import {
 } from '@elastic/eui';
 import { i18n } from '@osd/i18n';
 import { CellOutput } from '../../common';
+import { ResponseDataGrid, Row } from './response_data_grid';
 
 interface Props {
   output: CellOutput;
@@ -23,53 +23,35 @@ interface Props {
 
 type ViewId = 'json' | 'table';
 
-type Row = Record<string, unknown>;
-
-/** Flatten nested objects into dotted keys, keeping arrays as JSON strings. */
-function flatten(obj: unknown, prefix = '', out: Row = {}) {
-  if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
-    out[prefix || 'value'] = obj;
-    return out;
-  }
-  for (const [k, v] of Object.entries(obj as Row)) {
-    const key = prefix ? `${prefix}.${k}` : k;
-    if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
-      flatten(v, key, out);
-    } else {
-      out[key] = v;
-    }
-  }
-  return out;
-}
-
 const isObject = (v: unknown): v is Row => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+const HIT_LEADING_COLUMNS = ['_index', '_id', '_score'];
 
 /**
  * Turn a response into table rows when its shape allows it:
- * - `_search` results: one row per `hits.hits[]` entry (_index/_id/_score + flattened _source)
+ * - `_search` results: one row per `hits.hits[]` entry (_index/_id/_score + top-level _source keys)
  * - top-level array of objects (e.g. `_cat/*?format=json`, `_tasks`): one row per element
+ * Nested objects/arrays stay as a single value in their column; the grid shows them as
+ * compact JSON and pretty-prints them when the cell is expanded.
  */
-function extractRows(body: unknown): Row[] | null {
+function extractRows(body: unknown): { rows: Row[]; leading: string[] } | null {
   const hits = (body as any)?.hits?.hits;
   if (Array.isArray(hits) && hits.length > 0) {
-    return hits.map((h: any) => ({
-      _index: h._index,
-      _id: h._id,
-      _score: h._score ?? null,
-      ...flatten(h._source ?? {}),
-    }));
+    return {
+      rows: hits.map((h: any) => ({
+        _index: h._index,
+        _id: h._id,
+        _score: h._score ?? null,
+        ...(isObject(h._source) ? h._source : {}),
+      })),
+      leading: HIT_LEADING_COLUMNS,
+    };
   }
   if (Array.isArray(body) && body.length > 0 && body.every(isObject)) {
-    return body.map((item) => flatten(item));
+    return { rows: body, leading: [] };
   }
   return null;
 }
-
-const formatCell = (v: unknown) => {
-  if (v === null || v === undefined) return '';
-  if (typeof v === 'object') return JSON.stringify(v);
-  return String(v);
-};
 
 const statusColor = (code: number) => {
   if (code >= 500) return 'danger';
@@ -79,21 +61,9 @@ const statusColor = (code: number) => {
 };
 
 export const CellOutputView: React.FC<Props> = ({ output }) => {
-  const rows = useMemo(() => extractRows(output.body), [output.body]);
+  const table = useMemo(() => extractRows(output.body), [output.body]);
   const [view, setView] = useState<ViewId>('json');
-  const effectiveView: ViewId = rows ? view : 'json';
-
-  const columns = useMemo(() => {
-    if (!rows) return [];
-    const keys = new Set<string>();
-    rows.forEach((r) => Object.keys(r).forEach((k) => keys.add(k)));
-    return Array.from(keys).map((k) => ({
-      field: k,
-      name: k,
-      truncateText: true,
-      render: (v: unknown) => formatCell(v),
-    }));
-  }, [rows]);
+  const effectiveView: ViewId = table ? view : 'json';
 
   const jsonText =
     typeof output.body === 'string' ? output.body : JSON.stringify(output.body, null, 2);
@@ -118,7 +88,7 @@ export const CellOutputView: React.FC<Props> = ({ output }) => {
           </EuiFlexItem>
         )}
         <EuiFlexItem />
-        {rows && (
+        {table && (
           <EuiFlexItem grow={false}>
             <EuiButtonGroup
               legend={i18n.translate('opensearchNotebook.output.viewLegend', {
@@ -133,7 +103,7 @@ export const CellOutputView: React.FC<Props> = ({ output }) => {
                   id: 'table',
                   label: i18n.translate('opensearchNotebook.output.tableView', {
                     defaultMessage: 'Table ({count})',
-                    values: { count: rows.length },
+                    values: { count: table.rows.length },
                   }),
                 },
               ]}
@@ -142,16 +112,8 @@ export const CellOutputView: React.FC<Props> = ({ output }) => {
         )}
       </EuiFlexGroup>
       <EuiSpacer size="xs" />
-      {effectiveView === 'table' && rows ? (
-        <div style={{ overflowX: 'auto' }}>
-          <EuiBasicTable
-            tableCaption="Response rows"
-            items={rows}
-            columns={columns}
-            tableLayout="auto"
-            compressed
-          />
-        </div>
+      {effectiveView === 'table' && table ? (
+        <ResponseDataGrid rows={table.rows} leadingColumns={table.leading} />
       ) : (
         <EuiCodeBlock language="json" fontSize="s" paddingSize="s" overflowHeight={400} isCopyable>
           {jsonText}
