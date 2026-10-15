@@ -225,16 +225,29 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
       return { ...nb, cells };
     });
 
-  const insertRequests = (index: number, requests: DslRequest[]) =>
+  /**
+   * Console-formatted paste into the cell at `index`: the first request replaces that cell's
+   * request, the rest are inserted as new DSL cells right below. When more than one request
+   * was pasted, all of them are executed top to bottom right away.
+   */
+  const pasteRequests = (index: number, requests: DslRequest[]) => {
+    const [first, ...rest] = requests;
+    const newCells = rest.map((request): DslCell => ({ id: newId(), type: 'dsl', request }));
+    let targetId: string | undefined;
     mutate((nb) => {
-      const cells = [...nb.cells];
-      cells.splice(
-        index,
-        0,
-        ...requests.map((request): NotebookCell => ({ id: newId(), type: 'dsl', request }))
+      const cells = nb.cells.map((c, i) =>
+        i === index && c.type === 'dsl' ? { ...c, request: first, output: undefined } : c
       );
+      targetId = cells[index]?.id;
+      cells.splice(index + 1, 0, ...newCells);
       return { ...nb, cells };
     });
+    if (requests.length > 1) {
+      // Run after React has committed the new cells (executeCell reads notebookRef).
+      const ids = [targetId, ...newCells.map((c) => c.id)].filter((id): id is string => !!id);
+      setTimeout(() => runCells(ids), 0);
+    }
+  };
 
   // ---- execution --------------------------------------------------------
 
@@ -279,13 +292,16 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
     [http]
   );
 
-  const runAll = async () => {
-    for (const c of notebook.cells) {
-      if (c.type === 'dsl') {
-        await executeCell(c.id);
+  const runCells = useCallback(
+    async (ids: string[]) => {
+      for (const id of ids) {
+        await executeCell(id);
       }
-    }
-  };
+    },
+    [executeCell]
+  );
+
+  const runAll = () => runCells(notebook.cells.filter((c) => c.type === 'dsl').map((c) => c.id));
 
   const clearOutputs = () =>
     mutate((nb) => ({
@@ -489,7 +505,7 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
               onDelete={() => deleteCell(index)}
               onMove={(dir) => moveCell(index, dir)}
               onInsertBelow={(type) => insertCell(index + 1, type)}
-              onInsertRequestsBelow={(requests) => insertRequests(index + 1, requests)}
+              onPasteRequests={(requests) => pasteRequests(index, requests)}
             />
             <EuiSpacer size="s" />
           </React.Fragment>

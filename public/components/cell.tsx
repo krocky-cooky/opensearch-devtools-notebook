@@ -44,8 +44,11 @@ interface Props {
   onDelete: () => void;
   onMove: (direction: -1 | 1) => void;
   onInsertBelow: (type: NotebookCell['type']) => void;
-  /** Called when Console-formatted text with several requests is pasted into a DSL cell. */
-  onInsertRequestsBelow: (requests: DslRequest[]) => void;
+  /**
+   * Called when Console-formatted text is pasted into a DSL cell. The first request replaces
+   * this cell's request; the rest become new cells below. The app decides whether to run them.
+   */
+  onPasteRequests: (requests: DslRequest[]) => void;
 }
 
 const methodOptions = HTTP_METHODS.map((m) => ({ value: m, text: m }));
@@ -164,8 +167,8 @@ const DslCellBody: React.FC<{
   cell: DslCell;
   onChange: (cell: DslCell) => void;
   onRun: () => void;
-  onInsertRequestsBelow: (requests: DslRequest[]) => void;
-}> = ({ cell, onChange, onRun, onInsertRequestsBelow }) => {
+  onPasteRequests: (requests: DslRequest[]) => void;
+}> = ({ cell, onChange, onRun, onPasteRequests }) => {
   const update = (patch: Partial<DslCell['request']>) =>
     onChange({ ...cell, request: { ...cell.request, ...patch } });
 
@@ -178,9 +181,7 @@ const DslCellBody: React.FC<{
     if (requests.length === 0) return;
     e.preventDefault();
     e.stopPropagation();
-    const [first, ...rest] = requests;
-    onChange({ ...cell, request: first });
-    if (rest.length) onInsertRequestsBelow(rest);
+    onPasteRequests(requests);
   };
 
   // Keep the latest onRun in a ref so the Monaco keybinding registered once stays current.
@@ -315,7 +316,7 @@ const MarkdownCellBody: React.FC<{
 };
 
 export const Cell: React.FC<Props> = (props) => {
-  const { cell, onChange, onRun, onInsertRequestsBelow } = props;
+  const { cell, onChange, onRun, onPasteRequests } = props;
   const [editing, setEditing] = useState(cell.type === 'markdown' && !cell.markdown);
 
   const handleRun = useCallback(() => {
@@ -359,7 +360,7 @@ export const Cell: React.FC<Props> = (props) => {
             cell={cell}
             onChange={onChange}
             onRun={handleRun}
-            onInsertRequestsBelow={onInsertRequestsBelow}
+            onPasteRequests={onPasteRequests}
           />
           {cell.output && (
             <>

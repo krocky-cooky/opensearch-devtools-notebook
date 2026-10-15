@@ -13,7 +13,7 @@ Write and run Query DSL (any REST request) in Jupyter-style cells, mix in Markdo
   - `DSL` cell: HTTP method dropdown (GET / POST / PUT / DELETE / HEAD / PATCH), request path, and a JSON body editor (Monaco, with syntax highlighting)
   - `Markdown` cell: rendered with EUI Markdown. Double-click to edit, Shift+Enter to render
   - Add / delete / reorder cells, run a cell with Shift+Enter, or run every cell top to bottom with **Run all**
-  - **Paste from Console**: paste `GET posts/_search` followed by a JSON body into a cell (path field or body) and it is split into method / path / body. Pasting several requests at once creates one cell per request. `#` and `//` comment lines are ignored
+  - **Paste from Console**: paste `GET posts/_search` followed by a JSON body into a cell (path field or body) and it is split into method / path / body. Pasting several requests at once creates one cell per request and runs them top to bottom immediately. `#` and `//` comment lines are ignored
   - **Copy as Console request** copies a cell back into Console format
   - The notebook you are editing is kept in `localStorage`, so it survives switching Dev Tools tabs and page reloads (same behavior as Console)
 - **Output**
