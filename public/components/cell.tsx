@@ -237,7 +237,7 @@ const DslCellBody: React.FC<{
             folding: true,
             fontSize: 12,
             lineHeight: 19,
-            renderLineHighlight: 'all',
+            renderLineHighlight: 'none',
             renderWhitespace: 'none',
             guides: { indentation: true, bracketPairs: true },
             bracketPairColorization: { enabled: true },
