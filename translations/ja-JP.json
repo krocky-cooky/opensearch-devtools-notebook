@@ -121,6 +121,8 @@
     "opensearchNotebook.discard.confirm": "破棄",
     "opensearchNotebook.discard.body": "現在のノートブックには未保存の変更があり、失われます。",
     "opensearchNotebook.cell.copyConsole": "Console 形式でコピー",
-    "opensearchNotebook.cell.pathPlaceholder": "my-index/_search（Console のリクエストをここに貼り付けても可）"
+    "opensearchNotebook.cell.pasteHint": "Console のリクエストをここに貼り付けられます — {example} に続けて JSON ボディ。複数まとめて貼ると 1 つずつセルになり、順番に実行されます。",
+    "opensearchNotebook.toast.pastedMany": "{count} 件の Console リクエストを別々のセルに貼り付けました — 順番に実行します",
+    "opensearchNotebook.toast.pastedOne": "Console リクエストを解析しました: {method} {path}"
   }
 }

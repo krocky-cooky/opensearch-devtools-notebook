@@ -51,7 +51,7 @@ const newId = () =>
 
 const newCell = (type: NotebookCell['type']): NotebookCell =>
   type === 'dsl'
-    ? { id: newId(), type: 'dsl', request: { method: 'GET', path: '_search', body: '' } }
+    ? { id: newId(), type: 'dsl', request: { method: 'GET', path: '', body: '' } }
     : { id: newId(), type: 'markdown', markdown: '' };
 
 const emptyNotebook = (): Notebook => ({
@@ -243,9 +243,25 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
       return { ...nb, cells };
     });
     if (requests.length > 1) {
+      toasts.addInfo({
+        title: i18n.translate('opensearchNotebook.toast.pastedMany', {
+          defaultMessage:
+            'Pasted {count} Console requests into separate cells — running them in order',
+          values: { count: requests.length },
+        }),
+        toastLifeTimeMs: 4000,
+      });
       // Run after React has committed the new cells (executeCell reads notebookRef).
       const ids = [targetId, ...newCells.map((c) => c.id)].filter((id): id is string => !!id);
       setTimeout(() => runCells(ids), 0);
+    } else {
+      toasts.addInfo({
+        title: i18n.translate('opensearchNotebook.toast.pastedOne', {
+          defaultMessage: 'Parsed Console request: {method} {path}',
+          values: { method: first.method, path: first.path },
+        }),
+        toastLifeTimeMs: 3000,
+      });
     }
   };
 

@@ -9,6 +9,7 @@ import {
   EuiFieldText,
   EuiFlexGroup,
   EuiFlexItem,
+  EuiIcon,
   EuiLoadingSpinner,
   EuiMarkdownFormat,
   EuiPanel,
@@ -19,6 +20,7 @@ import {
   EuiToolTip,
 } from '@elastic/eui';
 import { i18n } from '@osd/i18n';
+import { FormattedMessage } from '@osd/i18n/react';
 import { CodeEditor } from '../../../../src/plugins/opensearch_dashboards_react/public';
 import {
   DslCell,
@@ -198,9 +200,23 @@ const DslCellBody: React.FC<{
   };
 
   const lineCount = Math.max(3, Math.min(30, cell.request.body.split('\n').length + 1));
+  const isEmpty = !cell.request.path.trim() && !cell.request.body.trim();
 
   return (
     <div onPasteCapture={onPasteCapture}>
+      {isEmpty && (
+        <>
+          <EuiText size="xs" color="subdued" className="osnbPasteHint">
+            <EuiIcon type="copyClipboard" size="s" aria-hidden={true} />{' '}
+            <FormattedMessage
+              id="opensearchNotebook.cell.pasteHint"
+              defaultMessage="Paste a Console request here — {example} followed by its JSON body. Several requests at once become one cell each and run in order."
+              values={{ example: <code>GET my-index/_search</code> }}
+            />
+          </EuiText>
+          <EuiSpacer size="xs" />
+        </>
+      )}
       <EuiFlexGroup gutterSize="s" responsive={false} onKeyDown={onKeyDown}>
         <EuiFlexItem grow={false} style={{ width: 120 }}>
           <EuiSelect
@@ -215,9 +231,7 @@ const DslCellBody: React.FC<{
           <EuiFieldText
             compressed
             aria-label="Request path"
-            placeholder={i18n.translate('opensearchNotebook.cell.pathPlaceholder', {
-              defaultMessage: 'my-index/_search  (or paste a Console request here)',
-            })}
+            placeholder="my-index/_search"
             value={cell.request.path}
             onChange={(e) => update({ path: e.target.value })}
           />

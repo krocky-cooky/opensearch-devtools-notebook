@@ -7,3 +7,11 @@
 .osnbCell:focus-within {
   border-color: $euiColorPrimary;
 }
+
+.osnbPasteHint {
+  padding: 2px 4px;
+
+  code {
+    font-size: inherit;
+  }
+}
