@@ -12,6 +12,7 @@ export const NOTEBOOK_SAVED_OBJECT_TYPE = 'opensearch-notebook';
 /** REST API prefix served by this plugin's server side. */
 export const API_PREFIX = '/api/opensearch_notebook';
 export const EXECUTE_ROUTE = `${API_PREFIX}/execute`;
+export const EXECUTE_PPL_ROUTE = `${API_PREFIX}/execute_ppl`;
 
 /** Version of the exported notebook file schema. */
 export const FILE_SCHEMA_VERSION = 1;
@@ -20,7 +21,7 @@ export const FILE_EXTENSION = '.osnb.json';
 export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'PATCH'] as const;
 export type HttpMethod = (typeof HTTP_METHODS)[number];
 
-export type CellType = 'dsl' | 'markdown';
+export type CellType = 'dsl' | 'ppl' | 'markdown';
 
 export interface DslRequest {
   method: HttpMethod;
@@ -47,13 +48,23 @@ export interface DslCell {
   output?: CellOutput;
 }
 
+export interface PplCell {
+  id: string;
+  type: 'ppl';
+  /** PPL query text, e.g. `source=logs | where status = 500 | stats count() by host`. */
+  query: string;
+  output?: CellOutput;
+}
+
 export interface MarkdownCell {
   id: string;
   type: 'markdown';
   markdown: string;
 }
 
-export type NotebookCell = DslCell | MarkdownCell;
+export type NotebookCell = DslCell | PplCell | MarkdownCell;
+/** Cells that can be executed. */
+export type QueryCell = DslCell | PplCell;
 
 /** In-memory / saved-object representation of a notebook. */
 export interface Notebook {
@@ -84,6 +95,10 @@ export interface ExecuteRequestBody {
   method: HttpMethod;
   path: string;
   body?: string;
+}
+
+export interface ExecutePplRequestBody {
+  query: string;
 }
 
 export interface ExecuteResponseBody {

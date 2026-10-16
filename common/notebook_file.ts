@@ -4,6 +4,7 @@
  */
 
 import {
+  CellOutput,
   FILE_SCHEMA_VERSION,
   HTTP_METHODS,
   Notebook,
@@ -17,6 +18,17 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 
 const isHttpMethod = (v: unknown): v is HttpMethod =>
   typeof v === 'string' && (HTTP_METHODS as readonly string[]).includes(v);
+
+function parseOutput(raw: unknown): CellOutput | undefined {
+  if (!isRecord(raw) || typeof raw.statusCode !== 'number') return undefined;
+  return {
+    statusCode: raw.statusCode,
+    body: raw.body,
+    durationMs: typeof raw.durationMs === 'number' ? raw.durationMs : 0,
+    executedAt: typeof raw.executedAt === 'string' ? raw.executedAt : '',
+    ...(typeof raw.error === 'string' ? { error: raw.error } : {}),
+  };
+}
 
 /**
  * Validate an arbitrary parsed JSON value as a NotebookCell.
@@ -32,6 +44,17 @@ export function parseCell(raw: unknown, index: number): NotebookCell {
       type: 'markdown',
       markdown: typeof raw.markdown === 'string' ? raw.markdown : '',
     };
+  }
+
+  if (raw.type === 'ppl') {
+    const cell: NotebookCell = {
+      id,
+      type: 'ppl',
+      query: typeof raw.query === 'string' ? raw.query : '',
+    };
+    const output = parseOutput(raw.output);
+    if (output) cell.output = output;
+    return cell;
   }
 
   if (raw.type === 'dsl') {
@@ -51,19 +74,12 @@ export function parseCell(raw: unknown, index: number): NotebookCell {
         body: typeof req.body === 'string' ? req.body : '',
       },
     };
-    if (isRecord(raw.output) && typeof raw.output.statusCode === 'number') {
-      cell.output = {
-        statusCode: raw.output.statusCode,
-        body: raw.output.body,
-        durationMs: typeof raw.output.durationMs === 'number' ? raw.output.durationMs : 0,
-        executedAt: typeof raw.output.executedAt === 'string' ? raw.output.executedAt : '',
-        ...(typeof raw.output.error === 'string' ? { error: raw.output.error } : {}),
-      };
-    }
+    const output = parseOutput(raw.output);
+    if (output) cell.output = output;
     return cell;
   }
 
-  throw new Error(`cells[${index}].type must be "dsl" or "markdown"`);
+  throw new Error(`cells[${index}].type must be "dsl", "ppl" or "markdown"`);
 }
 
 /** Parse the text content of an exported notebook file. Throws on invalid input. */
@@ -91,7 +107,7 @@ export function parseNotebookFile(text: string): Notebook {
 /** Build the exported file object. Optionally strips cell outputs. */
 export function toNotebookFile(notebook: Notebook, includeOutputs: boolean): NotebookFile {
   const cells = notebook.cells.map((cell) => {
-    if (cell.type === 'dsl' && !includeOutputs) {
+    if ((cell.type === 'dsl' || cell.type === 'ppl') && !includeOutputs) {
       const { output, ...rest } = cell;
       return rest;
     }

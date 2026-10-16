@@ -29,12 +29,19 @@ import {
   HttpMethod,
   MarkdownCell,
   NotebookCell,
+  PplCell,
 } from '../../common';
 import { parseConsoleRequests, toConsoleText } from '../../common/console_request';
-import { DSL_BODY_LANGUAGE_ID, registerDslBodyLanguage } from '../dsl_language';
+import {
+  DSL_BODY_LANGUAGE_ID,
+  PPL_LANGUAGE_ID,
+  registerDslBodyLanguage,
+  registerPplLanguage,
+} from '../dsl_language';
 import { CellOutputView } from './cell_output';
 
 registerDslBodyLanguage();
+registerPplLanguage();
 
 interface Props {
   cell: NotebookCell;
@@ -136,6 +143,19 @@ const CellToolbar: React.FC<
           iconType="plusInCircle"
           aria-label="Insert DSL cell below"
           onClick={() => onInsertBelow('dsl')}
+        />
+      </EuiToolTip>
+    </EuiFlexItem>
+    <EuiFlexItem grow={false}>
+      <EuiToolTip
+        content={i18n.translate('opensearchNotebook.cell.addPpl', {
+          defaultMessage: 'Insert PPL cell below',
+        })}
+      >
+        <EuiButtonIcon
+          iconType="visQueryPPL"
+          aria-label="Insert PPL cell below"
+          onClick={() => onInsertBelow('ppl')}
         />
       </EuiToolTip>
     </EuiFlexItem>
@@ -279,6 +299,73 @@ const DslCellBody: React.FC<{
   );
 };
 
+const PplCellBody: React.FC<{
+  cell: PplCell;
+  onChange: (cell: PplCell) => void;
+  onRun: () => void;
+}> = ({ cell, onChange, onRun }) => {
+  const onRunRef = useRef(onRun);
+  useEffect(() => {
+    onRunRef.current = onRun;
+  }, [onRun]);
+
+  const lineCount = Math.max(2, Math.min(30, cell.query.split('\n').length + 1));
+
+  return (
+    <>
+      {!cell.query.trim() && (
+        <>
+          <EuiText size="xs" color="subdued" className="osnbPasteHint">
+            <EuiIcon type="visQueryPPL" size="s" aria-hidden={true} />{' '}
+            <FormattedMessage
+              id="opensearchNotebook.cell.pplHint"
+              defaultMessage="Piped Processing Language, e.g. {example}"
+              values={{
+                example: <code>source=my-index | where status = 500 | stats count() by host</code>,
+              }}
+            />
+          </EuiText>
+          <EuiSpacer size="xs" />
+        </>
+      )}
+      <div className="osnbBodyEditor">
+        <CodeEditor
+          languageId={PPL_LANGUAGE_ID}
+          height={`${lineCount * 19}px`}
+          value={cell.query}
+          onChange={(query) => onChange({ ...cell, query })}
+          options={{
+            minimap: { enabled: false },
+            lineNumbers: 'on',
+            lineNumbersMinChars: 3,
+            glyphMargin: false,
+            folding: false,
+            fontSize: 12,
+            lineHeight: 19,
+            renderLineHighlight: 'none',
+            scrollBeyondLastLine: false,
+            scrollbar: { alwaysConsumeMouseWheel: false },
+            overviewRulerLanes: 0,
+            hideCursorInOverviewRuler: true,
+            automaticLayout: true,
+            wordWrap: 'on',
+            padding: { top: 4, bottom: 4 },
+          }}
+          editorDidMount={(editor) => {
+            // Shift+Enter runs the cell, like Jupyter.
+            editor.addCommand(
+              // monaco.KeyMod.Shift | monaco.KeyCode.Enter
+              // eslint-disable-next-line no-bitwise
+              1024 | 3,
+              () => onRunRef.current()
+            );
+          }}
+        />
+      </div>
+    </>
+  );
+};
+
 const MarkdownCellBody: React.FC<{
   cell: MarkdownCell;
   onChange: (cell: MarkdownCell) => void;
@@ -346,15 +433,15 @@ export const Cell: React.FC<Props> = (props) => {
       <CellToolbar
         {...props}
         onRun={cell.type === 'markdown' ? () => setEditing((v) => !v) : handleRun}
-        label={cell.type === 'dsl' ? 'DSL' : 'Markdown'}
-        runIcon={cell.type === 'dsl' ? 'play' : editing ? 'eye' : 'pencil'}
+        label={cell.type === 'dsl' ? 'DSL' : cell.type === 'ppl' ? 'PPL' : 'Markdown'}
+        runIcon={cell.type !== 'markdown' ? 'play' : editing ? 'eye' : 'pencil'}
         onCopyConsole={
           cell.type === 'dsl'
             ? () => navigator.clipboard?.writeText(toConsoleText(cell.request))
             : undefined
         }
         runTooltip={
-          cell.type === 'dsl'
+          cell.type !== 'markdown'
             ? i18n.translate('opensearchNotebook.cell.runTooltip', {
                 defaultMessage: 'Run cell (Shift+Enter)',
               })
@@ -376,6 +463,16 @@ export const Cell: React.FC<Props> = (props) => {
             onRun={handleRun}
             onPasteRequests={onPasteRequests}
           />
+          {cell.output && (
+            <>
+              <EuiSpacer size="s" />
+              <CellOutputView output={cell.output} />
+            </>
+          )}
+        </>
+      ) : cell.type === 'ppl' ? (
+        <>
+          <PplCellBody cell={cell} onChange={onChange} onRun={handleRun} />
           {cell.output && (
             <>
               <EuiSpacer size="s" />

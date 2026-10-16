@@ -5,7 +5,7 @@
 
 import { schema } from '@osd/config-schema';
 import { IRouter } from '../../../../src/core/server';
-import { EXECUTE_ROUTE, HTTP_METHODS, ExecuteResponseBody } from '../../common';
+import { EXECUTE_PPL_ROUTE, EXECUTE_ROUTE, HTTP_METHODS, ExecuteResponseBody } from '../../common';
 
 /** Normalize a user supplied path: ensure a single leading slash, split query string. */
 function splitPath(raw: string): { path: string; querystring?: Record<string, string> } {
@@ -72,6 +72,44 @@ export function defineRoutes(router: IRouter) {
       } catch (err: any) {
         // Non-ignored errors (5xx, connection failures) still return a 200 to the UI
         // with the error captured, so the notebook can render it as cell output.
+        const payload: ExecuteResponseBody = {
+          statusCode: err?.statusCode ?? 500,
+          body: err?.body ?? { error: err?.message ?? 'Unknown error' },
+          durationMs: Date.now() - started,
+        };
+        return response.ok({ body: payload });
+      }
+    }
+  );
+
+  router.post(
+    {
+      path: EXECUTE_PPL_ROUTE,
+      validate: {
+        body: schema.object({
+          query: schema.string({ minLength: 1, maxLength: 1024 * 1024 }),
+        }),
+      },
+    },
+    async (context, request, response) => {
+      const client = context.core.opensearch.client.asCurrentUser;
+      const started = Date.now();
+      try {
+        const result = await client.transport.request(
+          {
+            method: 'POST',
+            path: '/_plugins/_ppl',
+            body: { query: request.body.query },
+          },
+          { ignore: [400, 401, 403, 404, 405, 409, 429] }
+        );
+        const payload: ExecuteResponseBody = {
+          statusCode: result.statusCode ?? 200,
+          body: result.body,
+          durationMs: Date.now() - started,
+        };
+        return response.ok({ body: payload });
+      } catch (err: any) {
         const payload: ExecuteResponseBody = {
           statusCode: err?.statusCode ?? 500,
           body: err?.body ?? { error: err?.message ?? 'Unknown error' },

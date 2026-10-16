@@ -123,6 +123,10 @@
     "opensearchNotebook.cell.copyConsole": "Console 形式でコピー",
     "opensearchNotebook.cell.pasteHint": "Console のリクエストをここに貼り付けられます — {example} に続けて JSON ボディ。複数まとめて貼ると 1 つずつセルになり、順番に実行されます。",
     "opensearchNotebook.toast.pastedMany": "{count} 件の Console リクエストを別々のセルに貼り付けました — 順番に実行します",
-    "opensearchNotebook.toast.pastedOne": "Console リクエストを解析しました: {method} {path}"
+    "opensearchNotebook.toast.pastedOne": "Console リクエストを解析しました: {method} {path}",
+    "opensearchNotebook.cell.addPpl": "下に PPL セルを挿入",
+    "opensearchNotebook.cell.pplHint": "Piped Processing Language。例: {example}",
+    "opensearchNotebook.empty.addPpl": "PPL セルを追加",
+    "opensearchNotebook.action.addPpl": "PPL セル"
   }
 }

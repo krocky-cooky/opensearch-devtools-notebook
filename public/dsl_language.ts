@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { monaco } from '@osd/monaco';
+import { monaco, setupPPLTokenization } from '@osd/monaco';
 
 /**
  * Language id used by DSL body editors. OSD's Monaco build does not ship the
@@ -58,4 +58,28 @@ export function registerDslBodyLanguage() {
       ],
     },
   } as monaco.languages.IMonarchLanguage);
+}
+
+/** Language id for PPL cells; tokenised by @osd/monaco's PPL analyzer. */
+export const PPL_LANGUAGE_ID = 'osnb-ppl';
+
+let pplRegistered = false;
+
+export function registerPplLanguage() {
+  if (pplRegistered) return;
+  pplRegistered = true;
+  if (monaco.languages.getLanguages().some((l) => l.id === PPL_LANGUAGE_ID)) return;
+  monaco.languages.register({ id: PPL_LANGUAGE_ID });
+  monaco.languages.setLanguageConfiguration(PPL_LANGUAGE_ID, {
+    brackets: [
+      ['(', ')'],
+      ['[', ']'],
+    ],
+    autoClosingPairs: [
+      { open: '(', close: ')' },
+      { open: "'", close: "'", notIn: ['string'] },
+      { open: '"', close: '"', notIn: ['string'] },
+    ],
+  });
+  setupPPLTokenization(PPL_LANGUAGE_ID);
 }

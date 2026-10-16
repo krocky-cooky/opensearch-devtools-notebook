@@ -27,11 +27,14 @@ import {
   CellOutput,
   DslCell,
   DslRequest,
+  EXECUTE_PPL_ROUTE,
   EXECUTE_ROUTE,
+  ExecutePplRequestBody,
   ExecuteRequestBody,
   ExecuteResponseBody,
   Notebook,
   NotebookCell,
+  QueryCell,
 } from '../../common';
 import { parseStoredCells } from '../../common/notebook_file';
 import { downloadNotebookFile, NotebookStorage, readNotebookFile } from '../storage';
@@ -49,10 +52,18 @@ const newId = () =>
     ? (crypto as any).randomUUID()
     : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
-const newCell = (type: NotebookCell['type']): NotebookCell =>
-  type === 'dsl'
-    ? { id: newId(), type: 'dsl', request: { method: 'GET', path: '', body: '' } }
-    : { id: newId(), type: 'markdown', markdown: '' };
+const newCell = (type: NotebookCell['type']): NotebookCell => {
+  switch (type) {
+    case 'dsl':
+      return { id: newId(), type: 'dsl', request: { method: 'GET', path: '', body: '' } };
+    case 'ppl':
+      return { id: newId(), type: 'ppl', query: '' };
+    default:
+      return { id: newId(), type: 'markdown', markdown: '' };
+  }
+};
+
+const isQueryCell = (c: NotebookCell): c is QueryCell => c.type === 'dsl' || c.type === 'ppl';
 
 const emptyNotebook = (): Notebook => ({
   title: i18n.translate('opensearchNotebook.untitled', { defaultMessage: 'Untitled notebook' }),
@@ -270,20 +281,28 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
   const executeCell = useCallback(
     async (cellId: string) => {
       const found = notebookRef.current.cells.find((c) => c.id === cellId);
-      if (!found || found.type !== 'dsl') return;
-      const cell: DslCell = found;
+      if (!found || !isQueryCell(found)) return;
+      const cell: QueryCell = found;
 
       setRunning((s) => new Set(s).add(cellId));
-      const body: ExecuteRequestBody = {
-        method: cell.request.method,
-        path: cell.request.path,
-        body: cell.request.body,
-      };
       let output: CellOutput;
       try {
-        const res = await http.post<ExecuteResponseBody>(EXECUTE_ROUTE, {
-          body: JSON.stringify(body),
-        });
+        let res: ExecuteResponseBody;
+        if (cell.type === 'ppl') {
+          const body: ExecutePplRequestBody = { query: cell.query };
+          res = await http.post<ExecuteResponseBody>(EXECUTE_PPL_ROUTE, {
+            body: JSON.stringify(body),
+          });
+        } else {
+          const body: ExecuteRequestBody = {
+            method: cell.request.method,
+            path: cell.request.path,
+            body: cell.request.body,
+          };
+          res = await http.post<ExecuteResponseBody>(EXECUTE_ROUTE, {
+            body: JSON.stringify(body),
+          });
+        }
         output = { ...res, executedAt: new Date().toISOString() };
       } catch (e: any) {
         output = {
@@ -296,7 +315,7 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
       }
       setNotebook((nb) => ({
         ...nb,
-        cells: nb.cells.map((c) => (c.id === cellId && c.type === 'dsl' ? { ...c, output } : c)),
+        cells: nb.cells.map((c) => (c.id === cellId && isQueryCell(c) ? { ...c, output } : c)),
       }));
       setDirty(true);
       setRunning((s) => {
@@ -317,12 +336,12 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
     [executeCell]
   );
 
-  const runAll = () => runCells(notebook.cells.filter((c) => c.type === 'dsl').map((c) => c.id));
+  const runAll = () => runCells(notebook.cells.filter(isQueryCell).map((c) => c.id));
 
   const clearOutputs = () =>
     mutate((nb) => ({
       ...nb,
-      cells: nb.cells.map((c) => (c.type === 'dsl' ? { ...c, output: undefined } : c)),
+      cells: nb.cells.map((c) => (isQueryCell(c) ? { ...c, output: undefined } : c)),
     }));
 
   // ---- persistence ------------------------------------------------------
@@ -501,6 +520,11 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
                 defaultMessage: 'Add DSL cell',
               })}
             </EuiButton>,
+            <EuiButtonEmpty key="ppl" onClick={() => insertCell(0, 'ppl')}>
+              {i18n.translate('opensearchNotebook.empty.addPpl', {
+                defaultMessage: 'Add PPL cell',
+              })}
+            </EuiButtonEmpty>,
             <EuiButtonEmpty key="md" onClick={() => insertCell(0, 'markdown')}>
               {i18n.translate('opensearchNotebook.empty.addMarkdown', {
                 defaultMessage: 'Add Markdown cell',
@@ -538,6 +562,17 @@ export const NotebookApp: React.FC<Props> = ({ http, notifications, savedObjects
             >
               {i18n.translate('opensearchNotebook.action.addDsl', {
                 defaultMessage: 'DSL cell',
+              })}
+            </EuiButtonEmpty>
+          </EuiFlexItem>
+          <EuiFlexItem grow={false}>
+            <EuiButtonEmpty
+              size="s"
+              iconType="visQueryPPL"
+              onClick={() => insertCell(notebook.cells.length, 'ppl')}
+            >
+              {i18n.translate('opensearchNotebook.action.addPpl', {
+                defaultMessage: 'PPL cell',
               })}
             </EuiButtonEmpty>
           </EuiFlexItem>

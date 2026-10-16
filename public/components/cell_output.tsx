@@ -31,6 +31,7 @@ const HIT_LEADING_COLUMNS = ['_index', '_id', '_score'];
  * Turn a response into table rows when its shape allows it:
  * - `_search` results: one row per `hits.hits[]` entry (_index/_id/_score + top-level _source keys)
  * - top-level array of objects (e.g. `_cat/*?format=json`, `_tasks`): one row per element
+ * - SQL/PPL plugin results (`schema` + `datarows`): one row per datarow, columns from schema
  * Nested objects/arrays stay as a single value in their column; the grid shows them as
  * compact JSON and pretty-prints them when the cell is expanded.
  */
@@ -49,6 +50,18 @@ function extractRows(body: unknown): { rows: Row[]; leading: string[] } | null {
   }
   if (Array.isArray(body) && body.length > 0 && body.every(isObject)) {
     return { rows: body, leading: [] };
+  }
+  // SQL / PPL plugin response: { schema: [{name,type}], datarows: [[...]] }
+  const schema = (body as any)?.schema;
+  const datarows = (body as any)?.datarows;
+  if (Array.isArray(schema) && Array.isArray(datarows) && datarows.length > 0) {
+    const names: string[] = schema.map((c: any, i: number) =>
+      typeof c?.name === 'string' ? c.name : `col${i}`
+    );
+    return {
+      rows: datarows.map((r: unknown[]) => Object.fromEntries(names.map((n, i) => [n, r?.[i]]))),
+      leading: [],
+    };
   }
   return null;
 }

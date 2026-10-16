@@ -7,9 +7,10 @@ Adds a **Notebook** tab to OpenSearch Dashboards Dev Tools. Run Query DSL in Jup
 ## Features
 
 - **DSL cells** — HTTP method dropdown, path, JSON body editor with highlighting. Shift+Enter to run, **Run all** for the whole notebook
+- **PPL cells** — Piped Processing Language queries (`source=logs | stats count() by host`) with highlighting, run through the SQL plugin's `_plugins/_ppl`
 - **Markdown cells** — double-click to edit, Shift+Enter to render
 - **Paste from Console** — paste `GET index/_search` + body into a cell and it is split into method / path / body. Paste several requests at once to get one cell each, executed in order
-- **Output** — status, duration, raw JSON, and a **Table** view for `_search` hits and `_cat/*?format=json`-style arrays (resizable columns, sorting, pagination, expand a cell to see nested JSON)
+- **Output** — status, duration, raw JSON, and a **Table** view for `_search` hits, PPL results and `_cat/*?format=json`-style arrays (resizable columns, sorting, pagination, expand a cell to see nested JSON)
 - **Save** — notebooks are Dashboards saved objects, so tenants, permissions and Saved Objects export/import work as usual
 - **Export / Import** — download as `<title>.osnb.json` (with or without outputs) and import later
 - Work in progress is kept in `localStorage`, so switching tabs or reloading does not lose it
@@ -58,6 +59,7 @@ Lint with the Dashboards toolchain: `OSD_ROOT=$PWD node scripts/eslint plugins/o
 ## Limitations
 
 - Requests go to the Dashboards default connection (no multiple data sources)
+- PPL cells require the OpenSearch SQL plugin on the cluster
 - No variables between cells, no Console autocomplete, no table view for `aggregations`
 - `.osnb.json` is not compatible with Observability Notebooks
 
