@@ -6,6 +6,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   EuiButtonIcon,
+  EuiContextMenuItem,
+  EuiContextMenuPanel,
+  EuiPopover,
   EuiFieldText,
   EuiFlexGroup,
   EuiFlexItem,
@@ -61,6 +64,53 @@ interface Props {
 }
 
 const methodOptions = HTTP_METHODS.map((m) => ({ value: m, text: m }));
+
+const InsertCellMenu: React.FC<{ onInsert: (type: NotebookCell['type']) => void }> = ({
+  onInsert,
+}) => {
+  const [open, setOpen] = useState(false);
+  const label = i18n.translate('opensearchNotebook.cell.insertBelow', {
+    defaultMessage: 'Insert cell below',
+  });
+  const item = (type: NotebookCell['type'], icon: string, name: string) => ({
+    name,
+    icon,
+    onClick: () => {
+      setOpen(false);
+      onInsert(type);
+    },
+  });
+  return (
+    <EuiPopover
+      isOpen={open}
+      closePopover={() => setOpen(false)}
+      panelPaddingSize="none"
+      anchorPosition="downRight"
+      button={
+        <EuiToolTip content={label}>
+          <EuiButtonIcon
+            iconType="plusInCircle"
+            aria-label={label}
+            onClick={() => setOpen((v) => !v)}
+          />
+        </EuiToolTip>
+      }
+    >
+      <EuiContextMenuPanel
+        size="s"
+        items={[
+          item('dsl', 'visQueryDQL', 'DSL'),
+          item('ppl', 'visQueryPPL', 'PPL'),
+          item('markdown', 'document', 'Markdown'),
+        ].map((it) => (
+          <EuiContextMenuItem key={it.name} icon={it.icon} size="s" onClick={it.onClick}>
+            {it.name}
+          </EuiContextMenuItem>
+        ))}
+      />
+    </EuiPopover>
+  );
+};
 
 const CellToolbar: React.FC<
   Omit<Props, 'onChange' | 'cell'> & {
@@ -134,43 +184,7 @@ const CellToolbar: React.FC<
       </EuiToolTip>
     </EuiFlexItem>
     <EuiFlexItem grow={false}>
-      <EuiToolTip
-        content={i18n.translate('opensearchNotebook.cell.addDsl', {
-          defaultMessage: 'Insert DSL cell below',
-        })}
-      >
-        <EuiButtonIcon
-          iconType="plusInCircle"
-          aria-label="Insert DSL cell below"
-          onClick={() => onInsertBelow('dsl')}
-        />
-      </EuiToolTip>
-    </EuiFlexItem>
-    <EuiFlexItem grow={false}>
-      <EuiToolTip
-        content={i18n.translate('opensearchNotebook.cell.addPpl', {
-          defaultMessage: 'Insert PPL cell below',
-        })}
-      >
-        <EuiButtonIcon
-          iconType="visQueryPPL"
-          aria-label="Insert PPL cell below"
-          onClick={() => onInsertBelow('ppl')}
-        />
-      </EuiToolTip>
-    </EuiFlexItem>
-    <EuiFlexItem grow={false}>
-      <EuiToolTip
-        content={i18n.translate('opensearchNotebook.cell.addMarkdown', {
-          defaultMessage: 'Insert Markdown cell below',
-        })}
-      >
-        <EuiButtonIcon
-          iconType="document"
-          aria-label="Insert Markdown cell below"
-          onClick={() => onInsertBelow('markdown')}
-        />
-      </EuiToolTip>
+      <InsertCellMenu onInsert={onInsertBelow} />
     </EuiFlexItem>
     <EuiFlexItem grow={false}>
       <EuiToolTip content="Delete cell">
